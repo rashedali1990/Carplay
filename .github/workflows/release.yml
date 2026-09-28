@@ -23,13 +23,13 @@ jobs:
           node-version: 20
 
       - name: Install Dependencies
-        run: npm ci
+        run: npm install --legacy-peer-deps
 
-      - name: Package Xcode ZIP and APK
-        run: |
-          mkdir -p dist-release
-          curl -s http://localhost:3000/CarPlayPhoneCast.apk -o dist-release/CarPlayPhoneCast.apk || touch dist-release/CarPlayPhoneCast.apk
-          curl -s http://localhost:3000/CarPlayPhoneCast_Xcode_Project.zip -o dist-release/CarPlayPhoneCast_Xcode_Project.zip || touch dist-release/CarPlayPhoneCast_Xcode_Project.zip
+      - name: Build Web Application
+        run: npm run build
+
+      - name: Package Xcode ZIP and Android APK
+        run: npm run package:release
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2

@@ -9,6 +9,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
+    "package:release": "tsx scripts/package-release.js",
     "lint": "tsc --noEmit"
   },
   "dependencies": {
