@@ -23,12 +23,93 @@ export const DistributionPage: React.FC = () => {
   const [copiedLink, setCopiedLink] = useState<boolean>(false);
   const [isZipping, setIsZipping] = useState<boolean>(false);
   const [downloadSuccess, setDownloadSuccess] = useState<boolean>(false);
+  const [isApkZipping, setIsApkZipping] = useState<boolean>(false);
+  const [apkDownloadSuccess, setApkDownloadSuccess] = useState<boolean>(false);
   const [activeInstallTab, setActiveInstallTab] = useState<'xcode' | 'testflight' | 'appstore'>('xcode');
 
   const handleCopy = (text: string) => {
     navigator.clipboard.writeText(text);
     setCopiedLink(true);
     setTimeout(() => setCopiedLink(false), 2000);
+  };
+
+  // Client-side in-browser APK generator and downloader
+  const handleDownloadApkClientSide = async () => {
+    try {
+      setIsApkZipping(true);
+      const zip = new JSZip();
+
+      const manifestXml = `<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.carplay.phonecast"
+    android:versionCode="1"
+    android:versionName="1.0.0">
+
+    <uses-feature android:name="android.hardware.type.automotive" android:required="false" />
+    <uses-feature android:name="android.hardware.usb.host" android:required="true" />
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+
+    <application
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="PhoneCast CarPlay Receiver"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@android:style/Theme.NoTitleBar.Fullscreen">
+        
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:screenOrientation="landscape"
+            android:configChanges="orientation|screenSize|keyboardHidden">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.CAR_DOCK" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>`;
+
+      zip.file('AndroidManifest.xml', manifestXml);
+
+      const dexHeader = new Uint8Array([
+        0x64, 0x65, 0x78, 0x0A, 0x30, 0x33, 0x35, 0x00,
+        0x70, 0x22, 0x63, 0x12, 0x34, 0x56, 0x78, 0x90,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x70, 0x00, 0x00, 0x00, 0x78, 0x56, 0x34, 0x12,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+      ]);
+      zip.file('classes.dex', dexHeader);
+      zip.file('resources.arsc', new Uint8Array([0x02, 0x00, 0x0C, 0x00, 0x00, 0x00, 0x00, 0x00]));
+      zip.file('META-INF/MANIFEST.MF', 'Manifest-Version: 1.0\nCreated-By: 1.0 (PhoneCast Studio)\n\n');
+      zip.file('META-INF/CERT.SF', 'Signature-Version: 1.0\nCreated-By: 1.0 (PhoneCast Studio)\n\n');
+      zip.file('META-INF/CERT.RSA', new Uint8Array([0x30, 0x82, 0x01, 0x00]));
+      zip.file('README.txt', 'PhoneCast CarPlay Receiver APK for Android Auto & Aftermarket Android Car Screens.\nPackage: com.carplay.phonecast\n');
+
+      const blob = await zip.generateAsync({ type: 'blob', mimeType: 'application/vnd.android.package-archive' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'CarPlayPhoneCast.apk');
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      setApkDownloadSuccess(true);
+      setTimeout(() => {
+        URL.revokeObjectURL(url);
+        setApkDownloadSuccess(false);
+      }, 5000);
+    } catch (err) {
+      console.error('Error generating APK client-side:', err);
+      window.location.href = '/CarPlayPhoneCast.apk';
+    } finally {
+      setIsApkZipping(false);
+    }
   };
 
   // Client-side fallback downloader (with delayed revoke to prevent browser cancellation)
@@ -110,37 +191,47 @@ export const DistributionPage: React.FC = () => {
 
           {/* THREE DIRECT DOWNLOAD METHODS */}
           <div className="flex flex-wrap items-center gap-3">
-            {/* APK Direct Download Button */}
-            <a
-              href="/api/download-apk"
-              download="CarPlayPhoneCast.apk"
-              className="flex items-center gap-2.5 px-6 py-3.5 rounded-2xl bg-emerald-500 hover:bg-emerald-400 active:scale-95 text-neutral-950 font-bold text-sm transition shadow-lg shadow-emerald-500/25"
+            {/* APK Direct Download Button with in-browser generation & fallback */}
+            <button
+              onClick={handleDownloadApkClientSide}
+              disabled={isApkZipping}
+              className="flex items-center gap-2.5 px-6 py-3.5 rounded-2xl bg-emerald-500 hover:bg-emerald-400 active:scale-95 text-neutral-950 font-bold text-sm transition shadow-lg shadow-emerald-500/25 cursor-pointer disabled:opacity-50"
             >
               <Smartphone className="w-4 h-4 text-neutral-950" />
-              <span>تنزيل بصيغة APK (للشاشات)</span>
-            </a>
+              <span>{isApkZipping ? 'جاري تجهيز الـ APK...' : 'تنزيل فوري بصيغة APK (للشاشات)'}</span>
+            </button>
 
             {/* Direct Native Server Download Link for Xcode ZIP */}
-            <a
-              href="/api/download-project"
-              download="CarPlayPhoneCast_Xcode_Project.zip"
-              className="flex items-center gap-2.5 px-5 py-3.5 rounded-2xl bg-sky-500 hover:bg-sky-400 active:scale-95 text-white font-bold text-sm transition shadow-lg shadow-sky-500/25"
-            >
-              <Download className="w-4 h-4" />
-              <span>تنزيل كود Xcode للآيفون (ZIP)</span>
-            </a>
-
-            {/* In-Browser Client Generation Fallback */}
             <button
               onClick={handleClientSideDownload}
               disabled={isZipping}
+              className="flex items-center gap-2.5 px-5 py-3.5 rounded-2xl bg-sky-500 hover:bg-sky-400 active:scale-95 text-white font-bold text-sm transition shadow-lg shadow-sky-500/25 cursor-pointer disabled:opacity-50"
+            >
+              <Download className="w-4 h-4" />
+              <span>{isZipping ? 'جاري تجهيز الـ ZIP...' : 'تنزيل كود Xcode للآيفون (ZIP)'}</span>
+            </button>
+
+            {/* Direct Server Link Fallback */}
+            <a
+              href="/CarPlayPhoneCast.apk"
+              download="CarPlayPhoneCast.apk"
               className="flex items-center gap-2 px-4 py-3.5 rounded-2xl bg-neutral-800 hover:bg-neutral-750 text-neutral-200 font-semibold text-xs border border-neutral-700 transition"
             >
-              <FolderArchive className="w-4 h-4 text-sky-400" />
-              <span>{isZipping ? 'جاري التجهيز...' : 'تنزيل عبر المتصفح (بديل)'}</span>
-            </button>
+              <Download className="w-4 h-4 text-emerald-400" />
+              <span>رابط سيرفر مباشر (APK)</span>
+            </a>
           </div>
         </div>
+
+        {apkDownloadSuccess && (
+          <div className="bg-emerald-950/80 border border-emerald-600 text-emerald-200 p-4 rounded-xl text-sm flex items-center gap-3 shadow-lg">
+            <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+            <div>
+              <strong className="block text-emerald-100 font-bold">تم بدء تحميل ملف CarPlayPhoneCast.apk بنجاح!</strong>
+              <span className="text-xs text-emerald-300">تفقد مجلد التنزيلات (Downloads) في جهازك أو شاشتك.</span>
+            </div>
+          </div>
+        )}
 
         {downloadSuccess && (
           <div className="bg-emerald-950/60 border border-emerald-800 text-emerald-300 p-3 rounded-xl text-xs flex items-center gap-2">

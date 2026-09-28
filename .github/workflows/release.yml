@@ -33,12 +33,14 @@ jobs:
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
-        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
         with:
+          tag_name: v1.0.0
+          name: CarPlay PhoneCast Release v1.0.0
           files: |
-            dist-release/CarPlayPhoneCast.apk
-            dist-release/CarPlayPhoneCast_Xcode_Project.zip
-          name: CarPlay PhoneCast Release ${{ github.ref_name }}
+            releases/CarPlayPhoneCast.apk
+            releases/CarPlayPhoneCast_Xcode_Project.zip
           draft: false
           prerelease: false
           generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
