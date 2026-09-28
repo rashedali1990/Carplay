@@ -82,9 +82,10 @@ export const CodeExplorer: React.FC = () => {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      URL.revokeObjectURL(url);
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
     } catch (err) {
       console.error('Error generating project zip:', err);
+      window.location.href = '/api/download-project';
     } finally {
       setIsZipping(false);
     }
@@ -111,15 +112,26 @@ export const CodeExplorer: React.FC = () => {
           </div>
         </div>
 
-        {/* Download Zip Action */}
-        <button
-          onClick={handleDownloadZip}
-          disabled={isZipping}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-sky-500 hover:bg-sky-400 active:scale-95 text-white font-semibold text-xs transition shadow-lg shadow-sky-500/25 disabled:opacity-50"
-        >
-          <Download className="w-4 h-4" />
-          {isZipping ? 'Packaging Project...' : 'Download Complete Xcode Project (.zip)'}
-        </button>
+        {/* Download Actions: Native Server Link + Client Generator */}
+        <div className="flex items-center gap-2">
+          <a
+            href="/api/download-project"
+            download="CarPlayPhoneCast_Xcode_Project.zip"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-sky-500 hover:bg-sky-400 active:scale-95 text-white font-semibold text-xs transition shadow-lg shadow-sky-500/25"
+          >
+            <Download className="w-4 h-4" />
+            <span>تنزيل مباشر (ZIP)</span>
+          </a>
+
+          <button
+            onClick={handleDownloadZip}
+            disabled={isZipping}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-neutral-800 hover:bg-neutral-750 text-neutral-300 font-medium text-xs border border-neutral-700 transition"
+          >
+            <Folder className="w-3.5 h-3.5" />
+            <span>{isZipping ? 'جاري التحضير...' : 'تنزيل عبر المتصفح'}</span>
+          </button>
+        </div>
       </div>
 
       {/* Category Pills Bar */}

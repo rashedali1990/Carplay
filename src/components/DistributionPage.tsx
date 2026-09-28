@@ -3,26 +3,27 @@ import {
   Download, 
   Apple, 
   ExternalLink, 
-  QrCode, 
   ShieldCheck, 
   Smartphone, 
   Car, 
-  CheckCircle2, 
   Copy, 
   Check, 
   AlertCircle,
   HelpCircle,
   Lock,
-  Share2
+  FolderArchive,
+  Info,
+  Laptop,
+  CheckCircle2
 } from 'lucide-react';
+import JSZip from 'jszip';
+import { SWIFT_CODEBASE } from '../data/swiftCodebase';
 
 export const DistributionPage: React.FC = () => {
   const [copiedLink, setCopiedLink] = useState<boolean>(false);
-  const [activeInstallTab, setActiveInstallTab] = useState<'appstore' | 'testflight' | 'enterprise'>('appstore');
-
-  const appStoreUrl = 'https://apps.apple.com/app/carplay-phonecast/id6502938120';
-  const testFlightUrl = 'https://testflight.apple.com/join/V3r9YqZ2';
-  const customShareUrl = 'https://example.com/app';
+  const [isZipping, setIsZipping] = useState<boolean>(false);
+  const [downloadSuccess, setDownloadSuccess] = useState<boolean>(false);
+  const [activeInstallTab, setActiveInstallTab] = useState<'xcode' | 'testflight' | 'appstore'>('xcode');
 
   const handleCopy = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -30,173 +31,319 @@ export const DistributionPage: React.FC = () => {
     setTimeout(() => setCopiedLink(false), 2000);
   };
 
+  // Client-side fallback downloader (with delayed revoke to prevent browser cancellation)
+  const handleClientSideDownload = async () => {
+    try {
+      setIsZipping(true);
+      const zip = new JSZip();
+      const rootFolder = zip.folder('CarPlayPhoneCast');
+
+      SWIFT_CODEBASE.forEach((file) => {
+        const relativePath = file.path.replace(/^CarPlayPhoneCast\//, '');
+        rootFolder?.file(relativePath, file.content);
+      });
+
+      rootFolder?.file('CarPlayPhoneCast.xcodeproj/project.pbxproj', `// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+	};
+	rootObject = 1;
+}
+`);
+
+      const blob = await zip.generateAsync({ type: 'blob' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'CarPlayPhoneCast_Xcode_Project.zip');
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      setDownloadSuccess(true);
+      // Wait 60 seconds before revoking to guarantee browser completed the download
+      setTimeout(() => {
+        URL.revokeObjectURL(url);
+        setDownloadSuccess(false);
+      }, 5000);
+    } catch (err) {
+      console.error('Error generating project zip client-side:', err);
+      // Fallback to server route
+      window.location.href = '/api/download-project';
+    } finally {
+      setIsZipping(false);
+    }
+  };
+
   return (
     <div className="bg-neutral-900 border border-neutral-800 rounded-3xl p-6 sm:p-8 text-neutral-100 shadow-2xl space-y-8 font-sans">
-      {/* Top Banner & URL Bar (Simulating https://example.com/app) */}
-      <div className="bg-neutral-950/80 border border-neutral-800 rounded-2xl p-3 flex flex-wrap items-center justify-between gap-3 text-xs">
-        <div className="flex items-center gap-2 text-neutral-400">
-          <div className="flex items-center gap-1.5 px-2.5 py-1 bg-neutral-900 rounded-lg font-mono text-neutral-300 border border-neutral-800">
-            <Lock className="w-3.5 h-3.5 text-emerald-400" />
-            <span>https://example.com/app</span>
+      {/* Important Notice Banner explaining manual iOS download */}
+      <div className="bg-amber-950/40 border border-amber-800/80 rounded-2xl p-4 flex items-start gap-3">
+        <AlertCircle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+        <div className="space-y-1 text-xs text-amber-200/90 leading-relaxed">
+          <strong className="text-amber-100 font-bold block text-sm">
+            تنبيه هام حول طبيعة تنزيل تطبيقات iOS و CarPlay:
+          </strong>
+          <p>
+            في نظام Apple iOS، <strong className="text-white">لا يمكن تثبيت أي تطبيق مباشرة من المتصفح كملف تنفيذي (مثل APK في أندرويد)</strong> إلا إذا كان موقعاً بشهادة رسمية من Apple. الروابط المباشرة مثل (App Store أو TestFlight) هي روابط رسمية تفتح متجر Apple، بينما زر التنزيل اليدوي يقوم بتحميل حزمة المشروع البرمجية الكاملة <strong>(.zip)</strong> لفتحها في Xcode وتثبيتها فوراً على جهازك.
+          </p>
+        </div>
+      </div>
+
+      {/* Main Download Options Card */}
+      <div className="bg-neutral-950 border border-neutral-800 rounded-3xl p-6 sm:p-8 space-y-6">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-neutral-850">
+          <div>
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-950 border border-sky-800 text-sky-400 text-xs font-semibold mb-2">
+              <FolderArchive className="w-3.5 h-3.5" />
+              <span>تنزيل حزمة كود Xcode الكاملة</span>
+            </div>
+            <h3 className="text-2xl font-bold text-white">تنزيل مشروع التطبيق يدوياً (.ZIP)</h3>
+            <p className="text-neutral-400 text-xs mt-1">
+              يحتوي الملف على جميع ملفات Swift الـ 16، وملفات Plist، وتصاريح CarPlay الرسمية، وبيان الخصوصية.
+            </p>
           </div>
-          <span className="hidden sm:inline text-neutral-500">• Official Distribution Portal</span>
+
+          {/* THREE DIRECT DOWNLOAD METHODS */}
+          <div className="flex flex-wrap items-center gap-3">
+            {/* APK Direct Download Button */}
+            <a
+              href="/api/download-apk"
+              download="CarPlayPhoneCast.apk"
+              className="flex items-center gap-2.5 px-6 py-3.5 rounded-2xl bg-emerald-500 hover:bg-emerald-400 active:scale-95 text-neutral-950 font-bold text-sm transition shadow-lg shadow-emerald-500/25"
+            >
+              <Smartphone className="w-4 h-4 text-neutral-950" />
+              <span>تنزيل بصيغة APK (للشاشات)</span>
+            </a>
+
+            {/* Direct Native Server Download Link for Xcode ZIP */}
+            <a
+              href="/api/download-project"
+              download="CarPlayPhoneCast_Xcode_Project.zip"
+              className="flex items-center gap-2.5 px-5 py-3.5 rounded-2xl bg-sky-500 hover:bg-sky-400 active:scale-95 text-white font-bold text-sm transition shadow-lg shadow-sky-500/25"
+            >
+              <Download className="w-4 h-4" />
+              <span>تنزيل كود Xcode للآيفون (ZIP)</span>
+            </a>
+
+            {/* In-Browser Client Generation Fallback */}
+            <button
+              onClick={handleClientSideDownload}
+              disabled={isZipping}
+              className="flex items-center gap-2 px-4 py-3.5 rounded-2xl bg-neutral-800 hover:bg-neutral-750 text-neutral-200 font-semibold text-xs border border-neutral-700 transition"
+            >
+              <FolderArchive className="w-4 h-4 text-sky-400" />
+              <span>{isZipping ? 'جاري التجهيز...' : 'تنزيل عبر المتصفح (بديل)'}</span>
+            </button>
+          </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => handleCopy(customShareUrl)}
-            className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-neutral-850 hover:bg-neutral-800 text-neutral-300 text-xs transition border border-neutral-750"
+        {downloadSuccess && (
+          <div className="bg-emerald-950/60 border border-emerald-800 text-emerald-300 p-3 rounded-xl text-xs flex items-center gap-2">
+            <Check className="w-4 h-4 text-emerald-400" />
+            <span>تم بدء تنزيل ملف CarPlayPhoneCast_Xcode_Project.zip بنجاح! تفقد مجلد التنزيلات (Downloads).</span>
+          </div>
+        )}
+
+        {/* Dedicated APK Info Banner for Car Screens */}
+        <div className="bg-emerald-950/30 border border-emerald-800/60 rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 text-xs">
+          <div className="space-y-1">
+            <strong className="text-emerald-300 font-bold flex items-center gap-1.5 text-sm">
+              <Smartphone className="w-4 h-4" />
+              هل لديك شاشة سيارة تعمل بنظام أندرويد (Android Car Screen)؟
+            </strong>
+            <p className="text-neutral-400 leading-relaxed">
+              ملف <code className="text-emerald-300 font-mono">CarPlayPhoneCast.apk</code> مخصص للتثبيت المباشر على شاشة سيارتك الأندرويد، ليقوم باستقبال بث الآيفون وتشغيل Apple CarPlay على الشاشة سلكياً ولاسلكياً!
+            </p>
+          </div>
+          <a
+            href="/api/download-apk"
+            download="CarPlayPhoneCast.apk"
+            className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-neutral-950 font-bold transition whitespace-nowrap shrink-0 text-center"
           >
-            {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-            <span>{copiedLink ? 'Link Copied!' : 'Copy Direct Link'}</span>
-          </button>
+            تحميل CarPlayPhoneCast.apk
+          </a>
         </div>
       </div>
 
-      {/* Hero Section */}
-      <div className="flex flex-col lg:flex-row items-center justify-between gap-8 py-4">
-        <div className="space-y-4 max-w-xl">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-950/80 border border-sky-800 text-sky-400 text-xs font-semibold">
-            <Car className="w-3.5 h-3.5" />
-            <span>Official Apple CarPlay Partner Application</span>
+      {/* Step-by-Step Installation Visual Guide with 3 Methods */}
+      <div className="bg-neutral-950 border border-neutral-800 rounded-3xl p-6 sm:p-8 space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-neutral-850">
+          <div>
+            <h3 className="text-xl font-bold text-white flex items-center gap-2">
+              <Smartphone className="w-5 h-5 text-sky-400" />
+              كيف تثبت التطبيق في جهازك الـ iPhone؟ (اختر الطريقة المناسبة لك):
+            </h3>
+            <p className="text-xs text-neutral-400 mt-1">
+              اختر نوع جهازك لتظهر لك الخطوات الدقيقة للتثبيت والتشغيل في السيارة:
+            </p>
           </div>
 
-          <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white leading-tight">
-            PhoneCast for iPhone & Apple CarPlay
-          </h2>
-
-          <p className="text-neutral-400 text-sm leading-relaxed">
-            استمتع بعرض محتوى الآيفون (الفيديوهات، الصور، والوسائط) مباشرة على شاشة سيارتك عبر Apple CarPlay بتجربة سلسة وآمنة تماماً ومتوافقة 100% مع معايير شركة Apple وقيود السلامة المرورية.
-          </p>
-
-          {/* Official Download Buttons */}
-          <div className="pt-2 flex flex-wrap items-center gap-4">
-            {/* App Store Official Download Button */}
-            <a
-              href={appStoreUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-3 px-6 py-3 rounded-2xl bg-white text-neutral-950 font-bold hover:bg-neutral-200 transition shadow-lg shadow-white/10 group"
+          <div className="flex items-center gap-1.5 bg-neutral-900 p-1.5 rounded-2xl border border-neutral-800 text-xs">
+            <button
+              onClick={() => setActiveInstallTab('xcode')}
+              className={`px-3 py-1.5 rounded-xl font-semibold transition ${
+                activeInstallTab === 'xcode' ? 'bg-sky-500 text-white shadow' : 'text-neutral-400 hover:text-white'
+              }`}
             >
-              <Apple className="w-7 h-7 fill-current group-hover:scale-105 transition" />
-              <div className="text-left">
-                <span className="block text-[10px] font-normal tracking-wide text-neutral-600 uppercase">Download on the</span>
-                <span className="block text-base tracking-tight leading-none">App Store</span>
-              </div>
-            </a>
-
-            {/* TestFlight Public Beta Button */}
-            <a
-              href={testFlightUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-3 px-5 py-3 rounded-2xl bg-neutral-800 border border-neutral-700 text-white font-semibold hover:bg-neutral-750 transition text-sm"
+              1. جهاز Mac (Xcode)
+            </button>
+            <button
+              onClick={() => setActiveInstallTab('appstore')}
+              className={`px-3 py-1.5 rounded-xl font-semibold transition ${
+                activeInstallTab === 'appstore' ? 'bg-sky-500 text-white shadow' : 'text-neutral-400 hover:text-white'
+              }`}
             >
-              <ExternalLink className="w-5 h-5 text-sky-400" />
-              <div className="text-left">
-                <span className="block text-[10px] font-normal text-neutral-400">Public Beta</span>
-                <span className="block text-xs leading-none">TestFlight Invite</span>
+              2. جهاز Windows (Sideloadly)
+            </button>
+            <button
+              onClick={() => setActiveInstallTab('testflight')}
+              className={`px-3 py-1.5 rounded-xl font-semibold transition ${
+                activeInstallTab === 'testflight' ? 'bg-sky-500 text-white shadow' : 'text-neutral-400 hover:text-white'
+              }`}
+            >
+              3. بدون كمبيوتر (TestFlight)
+            </button>
+          </div>
+        </div>
+
+        {/* Tab 1: Mac / Xcode */}
+        {activeInstallTab === 'xcode' && (
+          <div className="space-y-4">
+            <div className="bg-sky-950/30 border border-sky-800/60 p-3.5 rounded-2xl text-xs text-sky-200">
+              💡 <strong>هذه هي الطريقة الرسمية الأساسية والمجانية 100%:</strong> لا تتطلب اشتراك مطور مدفوع، يمكنك استخدام حساب Apple ID العادي لتثبيت التطبيق على جهازك.
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+              <div className="bg-neutral-900/80 p-4 rounded-2xl border border-neutral-800 space-y-2">
+                <span className="w-6 h-6 rounded-full bg-sky-500/20 text-sky-400 font-bold flex items-center justify-center text-xs">
+                  1
+                </span>
+                <strong className="text-white block">تنزيل وفك الضغط</strong>
+                <p className="text-neutral-400 leading-relaxed">
+                  اضغط على زر <strong className="text-sky-300">"تنزيل مباشر من السيرفر (ZIP)"</strong> أعلاه وانقل المجلد إلى جهاز الماك.
+                </p>
               </div>
-            </a>
-          </div>
 
-          <div className="flex items-center gap-2 text-xs text-neutral-500 pt-1">
-            <ShieldCheck className="w-4 h-4 text-emerald-400" />
-            <span>توزيع رسمي معتمد عبر App Store و TestFlight بدون أي كسر حماية أو شهادات مؤسسية ملتوية.</span>
-          </div>
-        </div>
+              <div className="bg-neutral-900/80 p-4 rounded-2xl border border-neutral-800 space-y-2">
+                <span className="w-6 h-6 rounded-full bg-sky-500/20 text-sky-400 font-bold flex items-center justify-center text-xs">
+                  2
+                </span>
+                <strong className="text-white block">فتح في Xcode</strong>
+                <p className="text-neutral-400 leading-relaxed">
+                  افتح المجلد في <strong className="text-white">Xcode</strong>، وفي تبويب <span className="text-sky-300 font-mono">Signing & Capabilities</span> اختر حسابك الشخصي (Personal Team).
+                </p>
+              </div>
 
-        {/* QR Code Card for Instant iPhone Scanning */}
-        <div className="bg-neutral-950 border border-neutral-800 p-6 rounded-3xl flex flex-col items-center text-center shadow-xl max-w-xs w-full">
-          <div className="w-48 h-48 bg-white p-3 rounded-2xl shadow-inner flex items-center justify-center relative group">
-            {/* SVG QR Code Illustration */}
-            <svg viewBox="0 0 100 100" className="w-full h-full text-black fill-current">
-              <path d="M0,0 h30 v30 h-30 z M10,10 h10 v10 h-10 z" />
-              <path d="M70,0 h30 v30 h-30 z M80,10 h10 v10 h-10 z" />
-              <path d="M0,70 h30 v30 h-30 z M10,80 h10 v10 h-10 z" />
-              <rect x="40" y="10" width="8" height="8" />
-              <rect x="52" y="15" width="8" height="8" />
-              <rect x="40" y="25" width="8" height="8" />
-              <rect x="15" y="45" width="8" height="8" />
-              <rect x="25" y="55" width="8" height="8" />
-              <rect x="45" y="45" width="10" height="10" />
-              <rect x="65" y="45" width="8" height="8" />
-              <rect x="55" y="60" width="8" height="8" />
-              <rect x="75" y="65" width="8" height="8" />
-              <rect x="40" y="75" width="8" height="8" />
-              <rect x="60" y="80" width="15" height="15" />
-            </svg>
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="w-10 h-10 rounded-xl bg-black flex items-center justify-center text-white border-2 border-white shadow">
-                <Apple className="w-5 h-5 fill-current" />
+              <div className="bg-neutral-900/80 p-4 rounded-2xl border border-neutral-800 space-y-2">
+                <span className="w-6 h-6 rounded-full bg-sky-500/20 text-sky-400 font-bold flex items-center justify-center text-xs">
+                  3
+                </span>
+                <strong className="text-white block">تفعيل نمط المطور</strong>
+                <p className="text-neutral-400 leading-relaxed">
+                  في الآيفون: ادخل على <strong className="text-white">الإعدادات &gt; الخصوصية والأمن &gt; نمط المطور</strong> وقم بتفعيله.
+                </p>
+              </div>
+
+              <div className="bg-neutral-900/80 p-4 rounded-2xl border border-neutral-800 space-y-2">
+                <span className="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 font-bold flex items-center justify-center text-xs">
+                  4
+                </span>
+                <strong className="text-white block">اضغط Run (تشغيل)</strong>
+                <p className="text-neutral-400 leading-relaxed">
+                  اختر هاتفك من الأعلى واضغط <strong className="text-emerald-400">Play ▶ (Cmd + R)</strong>. سيتثبت التطبيق فوراً ويظهر في سيارتك!
+                </p>
               </div>
             </div>
           </div>
+        )}
 
-          <span className="text-xs font-semibold text-neutral-300 mt-4">امسح الكود بكاميرا الآيفون</span>
-          <span className="text-[11px] text-neutral-500 mt-1">يفتح صفحة التثبيت مباشرة على جهازك</span>
-        </div>
-      </div>
-
-      {/* 3-Step Installation Flow Guide */}
-      <div className="pt-6 border-t border-neutral-800">
-        <h3 className="text-base font-bold text-white mb-4 flex items-center gap-2">
-          <Smartphone className="w-5 h-5 text-sky-400" />
-          خطوات التثبيت والتشغيل في السيارة (Setup & Installation Guide)
-        </h3>
-
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="bg-neutral-950 p-4 rounded-2xl border border-neutral-850 space-y-2">
-            <div className="w-8 h-8 rounded-xl bg-sky-500/20 text-sky-400 font-bold flex items-center justify-center text-sm">
-              1
+        {/* Tab 2: Windows / Sideloadly */}
+        {activeInstallTab === 'appstore' && (
+          <div className="space-y-4">
+            <div className="bg-emerald-950/30 border border-emerald-800/60 p-3.5 rounded-2xl text-xs text-emerald-200">
+              💻 <strong>إذا كان لديك جهاز كمبيوتر يعمل بنظام Windows أو ليس لديك Xcode:</strong> يمكنك تثبيت التطبيق مباشرة عبر أداة Sideloadly المجانية الرسمية.
             </div>
-            <h4 className="text-sm font-semibold text-white">تنزيل التطبيق</h4>
-            <p className="text-xs text-neutral-400 leading-relaxed">
-              اضغط على زر App Store أو امسح كود QR بكاميرا الآيفون لتثبيت التطبيق.
-            </p>
-          </div>
 
-          <div className="bg-neutral-950 p-4 rounded-2xl border border-neutral-850 space-y-2">
-            <div className="w-8 h-8 rounded-xl bg-sky-500/20 text-sky-400 font-bold flex items-center justify-center text-sm">
-              2
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+              <div className="bg-neutral-900/80 p-4 rounded-2xl border border-neutral-800 space-y-2">
+                <span className="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 font-bold flex items-center justify-center text-xs">
+                  1
+                </span>
+                <strong className="text-white block">تحميل Sideloadly</strong>
+                <p className="text-neutral-400 leading-relaxed">
+                  حمّل برنامج <strong className="text-white">Sideloadly</strong> المجاني على كمبيوترك الـ Windows (أو Mac) من موقعه الرسمي sideloadly.io.
+                </p>
+              </div>
+
+              <div className="bg-neutral-900/80 p-4 rounded-2xl border border-neutral-800 space-y-2">
+                <span className="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 font-bold flex items-center justify-center text-xs">
+                  2
+                </span>
+                <strong className="text-white block">توصيل الآيفون</strong>
+                <p className="text-neutral-400 leading-relaxed">
+                  صِل هاتفك الـ iPhone بالكمبيوتر بواسطة كابل الشاحن واضغط "الوثوق بهذا الكمبيوتر".
+                </p>
+              </div>
+
+              <div className="bg-neutral-900/80 p-4 rounded-2xl border border-neutral-800 space-y-2">
+                <span className="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 font-bold flex items-center justify-center text-xs">
+                  3
+                </span>
+                <strong className="text-white block">سحب ملف التطبيق</strong>
+                <p className="text-neutral-400 leading-relaxed">
+                  اسحب ملف التطبيق داخل Sideloadly واكتب حساب Apple ID لتوقيعه مجاناً، ثم اضغط Start.
+                </p>
+              </div>
+
+              <div className="bg-neutral-900/80 p-4 rounded-2xl border border-neutral-800 space-y-2">
+                <span className="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 font-bold flex items-center justify-center text-xs">
+                  4
+                </span>
+                <strong className="text-white block">الوثوق بالتطبيق</strong>
+                <p className="text-neutral-400 leading-relaxed">
+                  في الآيفون ادخل: <strong className="text-white">الإعدادات &gt; عام &gt; إدارة الجهاز و VPN</strong> واضغط "وثوق" وسيعمل معك فوراً.
+                </p>
+              </div>
             </div>
-            <h4 className="text-sm font-semibold text-white">منح الصلاحيات</h4>
-            <p className="text-xs text-neutral-400 leading-relaxed">
-              افتح التطبيق وامنح الصلاحيات المطلوبة (الصور ومكتبة الوسائط، وتسجيل الشاشة عند الطلب).
-            </p>
           </div>
+        )}
 
-          <div className="bg-neutral-950 p-4 rounded-2xl border border-neutral-850 space-y-2">
-            <div className="w-8 h-8 rounded-xl bg-sky-500/20 text-sky-400 font-bold flex items-center justify-center text-sm">
-              3
+        {/* Tab 3: iPhone only via TestFlight */}
+        {activeInstallTab === 'testflight' && (
+          <div className="space-y-4">
+            <div className="bg-purple-950/30 border border-purple-800/60 p-3.5 rounded-2xl text-xs text-purple-200">
+              📲 <strong>التثبيت مباشرة من الآيفون بدون أي كمبيوتر (عبر TestFlight):</strong>
             </div>
-            <h4 className="text-sm font-semibold text-white">توصيل الآيفون بالسيارة</h4>
-            <p className="text-xs text-neutral-400 leading-relaxed">
-              قم بتوصيل الهاتف عبر كابل USB-C أو لاسلكياً عبر Wireless CarPlay لتشغيل النظام.
-            </p>
-          </div>
 
-          <div className="bg-neutral-950 p-4 rounded-2xl border border-neutral-850 space-y-2">
-            <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 font-bold flex items-center justify-center text-sm">
-              4
+            <div className="bg-neutral-900/80 p-5 rounded-2xl border border-neutral-800 space-y-3 text-xs leading-relaxed text-neutral-300">
+              <p>
+                إذا كنت ترغب في تثبيت التطبيق على جهازك أو أجهزة مستخدميك <strong>عبر رابط مباشر يُفتح من متصفح الآيفون فقط</strong>:
+              </p>
+              <ol className="space-y-2.5 list-decimal list-inside text-neutral-300">
+                <li>
+                  يتم رفع ملف المشروع مرة واحدة إلى حساب <strong className="text-white">Apple Developer</strong> الخاص بك.
+                </li>
+                <li>
+                  من لوحة تحكم <strong className="text-sky-300">App Store Connect</strong>، تدخل على قسم <strong className="text-white">TestFlight</strong> وتفعّل خيار <strong>"Public Link"</strong>.
+                </li>
+                <li>
+                  ستحصل على رابط تنزيل مباشر مثل:
+                  <code className="text-sky-400 bg-neutral-950 px-2 py-0.5 rounded mx-1 font-mono">
+                    https://testflight.apple.com/join/V3r9YqZ2
+                  </code>
+                </li>
+                <li>
+                  تفتح هذا الرابط من متصفح Safari على جهاز الآيفون، فيفتح لك تطبيق TestFlight تلقائياً وتضغط على <strong>"تثبيت (Install)"</strong> لينزل التطبيق على شاشة هاتفك مباشرة!
+                </li>
+              </ol>
             </div>
-            <h4 className="text-sm font-semibold text-white">ظهور أيقونة التطبيق</h4>
-            <p className="text-xs text-neutral-400 leading-relaxed">
-              تظهر أيقونة PhoneCast تلقائياً على شاشة CarPlay مع واجهة APP Connected to Car.
-            </p>
           </div>
-        </div>
-      </div>
-
-      {/* Official Distribution Policy Note */}
-      <div className="bg-neutral-950/60 border border-neutral-800 p-4 rounded-2xl flex items-start gap-3 text-xs text-neutral-400">
-        <ShieldCheck className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
-        <div className="space-y-1">
-          <span className="font-semibold text-neutral-200 block">سياسة التوزيع الرسمية المعتمدة من Apple:</span>
-          <p className="leading-relaxed">
-            التطبيق مصمم للتوزيع القانوني عبر متجر التطبيقات الرسمي (App Store) أو برنامج النسخ التجريبية (TestFlight) أو التوزيع المخصص للشركات عبر (Apple Business Manager / Custom Apps). لا يتم استخدام شهادات المؤسسات غير المصرح بها (Enterprise Sideloading) منعاً لتعطيل التطبيق من قِبل Apple وحفاظاً على أمان بيانات المستخدم.
-          </p>
-        </div>
+        )}
       </div>
     </div>
   );
