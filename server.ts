@@ -48,7 +48,7 @@ async function startServer() {
   });
 
   // Dedicated endpoint to download installable APK for Android Car Screens and Android phones
-  app.get('/api/download-apk', async (req, res) => {
+  const handleApkDownload = async (req: express.Request, res: express.Response) => {
     try {
       const apkZip = new JSZip();
 
@@ -125,7 +125,12 @@ async function startServer() {
       console.error('Error generating APK on server:', error);
       res.status(500).json({ error: 'Failed to generate APK' });
     }
-  });
+  };
+
+  app.get('/api/download-apk', handleApkDownload);
+  app.get('/download.apk', handleApkDownload);
+  app.get('/CarPlayPhoneCast.apk', handleApkDownload);
+  app.get('/app.apk', handleApkDownload);
 
   // Health check endpoint
   app.get('/api/health', (req, res) => {

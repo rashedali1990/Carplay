@@ -34,8 +34,8 @@ import {
 } from './types/carplay';
 
 export default function App() {
-  // Navigation Tabs: Simulator | Distribution | Feasibility | Code
-  const [activeView, setActiveView] = useState<'simulator' | 'distribution' | 'feasibility' | 'code'>('simulator');
+  // Navigation Tabs: Simulator | Distribution | Feasibility | Code (Defaulting to distribution for instant APK download)
+  const [activeView, setActiveView] = useState<'simulator' | 'distribution' | 'feasibility' | 'code'>('distribution');
 
   // CarPlay Connection State
   const [connectionState, setConnectionState] = useState<CarPlayConnectionState>('Connected');
@@ -265,6 +265,25 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-neutral-950 text-neutral-100 flex flex-col font-sans">
+      {/* Top Persistent APK Download Banner */}
+      <div className="bg-emerald-950/90 border-b border-emerald-800/80 px-4 py-2.5 text-xs flex flex-wrap items-center justify-between gap-3 text-emerald-200">
+        <div className="flex items-center gap-2">
+          <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span className="font-bold text-white">رابط مباشر لصيغة APK:</span>
+          <span className="hidden sm:inline">ملف CarPlayPhoneCast.apk متاح للتنزيل الفوري على شاشات السيارات وأجهزة أندرويد.</span>
+        </div>
+        <div className="flex items-center gap-3">
+          <a
+            href="/api/download-apk"
+            download="CarPlayPhoneCast.apk"
+            className="px-4 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-neutral-950 font-bold transition flex items-center gap-1.5 shadow-md shadow-emerald-500/20 active:scale-95"
+          >
+            <Download className="w-3.5 h-3.5" />
+            <span>تنزيل CarPlayPhoneCast.apk (مباشر)</span>
+          </a>
+        </div>
+      </div>
+
       {/* Top Application Navigation Bar */}
       <header className="bg-neutral-900/90 border-b border-neutral-800 sticky top-0 z-50 backdrop-blur-md px-6 py-3.5">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
