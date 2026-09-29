@@ -84,16 +84,21 @@ async function startServer() {
   app.get('/CarPlayPhoneCast.apk', handleApkDownload);
   app.get('/app.apk', handleApkDownload);
 
-  // Android Studio Project ZIP Download
-  app.get('/api/download-android-project', (req, res) => {
-    const zipPath = path.resolve(projectRoot, 'releases/CarPlayPhoneCast_Android_Project.zip');
-    if (fs.existsSync(zipPath)) {
+  // Android & Kotlin Project ZIP Download
+  const handleKotlinDownload = (req: express.Request, res: express.Response) => {
+    const kotlinZip = path.resolve(projectRoot, 'releases/CarPlayPhoneCast_Kotlin_Project.zip');
+    const androidZip = path.resolve(projectRoot, 'releases/CarPlayPhoneCast_Android_Project.zip');
+    const target = fs.existsSync(kotlinZip) ? kotlinZip : (fs.existsSync(androidZip) ? androidZip : null);
+    if (target) {
       res.setHeader('Content-Type', 'application/zip');
-      res.setHeader('Content-Disposition', 'attachment; filename="CarPlayPhoneCast_Android_Project.zip"');
-      return fs.createReadStream(zipPath).pipe(res);
+      res.setHeader('Content-Disposition', 'attachment; filename="CarPlayPhoneCast_Kotlin_Project.zip"');
+      return fs.createReadStream(target).pipe(res);
     }
-    res.status(404).json({ error: 'Android project ZIP not found' });
-  });
+    res.status(404).json({ error: 'Kotlin project ZIP not found' });
+  };
+
+  app.get('/api/download-kotlin-project', handleKotlinDownload);
+  app.get('/api/download-android-project', handleKotlinDownload);
 
   // Git Bundle Download
   app.get('/CarPlayPhoneCast.bundle', (req, res) => {

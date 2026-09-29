@@ -3,18 +3,27 @@ package com.carplay.phonecast.audio
 import android.media.AudioAttributes
 import android.media.AudioFormat
 import android.media.AudioTrack
+import android.util.Log
 
+/**
+ * Low-Latency Automotive AudioTrack Player in Kotlin
+ * Supports 48,000 Hz, 16-bit Stereo PCM audio stream.
+ */
 class AudioTrackStreamPlayer {
+
+    companion object {
+        private const val TAG = "AudioTrackStreamPlayer"
+        private const val SAMPLE_RATE = 48000
+    }
 
     private var audioTrack: AudioTrack? = null
 
-    fun initialize() {
-        val sampleRate = 48000
-        val bufferSize = AudioTrack.getMinBufferSize(
-            sampleRate,
+    fun initAudioTrack() {
+        val minBufferSize = AudioTrack.getMinBufferSize(
+            SAMPLE_RATE,
             AudioFormat.CHANNEL_OUT_STEREO,
             AudioFormat.ENCODING_PCM_16BIT
-        ) * 2
+        )
 
         audioTrack = AudioTrack.Builder()
             .setAudioAttributes(
@@ -26,25 +35,32 @@ class AudioTrackStreamPlayer {
             .setAudioFormat(
                 AudioFormat.Builder()
                     .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
-                    .setSampleRate(sampleRate)
+                    .setSampleRate(SAMPLE_RATE)
                     .setChannelMask(AudioFormat.CHANNEL_OUT_STEREO)
                     .build()
             )
-            .setBufferSizeInBytes(bufferSize)
+            .setBufferSizeInBytes(minBufferSize * 2)
             .setTransferMode(AudioTrack.MODE_STREAM)
             .setPerformanceMode(AudioTrack.PERFORMANCE_MODE_LOW_LATENCY)
-            .build()
+            .build().apply {
+                play()
+            }
 
-        audioTrack?.play()
+        Log.d(TAG, "AudioTrack initialized: ${SAMPLE_RATE}Hz Stereo PCM")
     }
 
-    fun writePcmData(pcmChunk: ByteArray) {
-        audioTrack?.write(pcmChunk, 0, pcmChunk.size, AudioTrack.WRITE_NON_BLOCKING)
+    fun playPcmChunk(pcmData: ByteArray) {
+        audioTrack?.write(pcmData, 0, pcmData.size, AudioTrack.WRITE_NON_BLOCKING)
     }
 
     fun release() {
-        audioTrack?.stop()
-        audioTrack?.release()
-        audioTrack = null
+        try {
+            audioTrack?.stop()
+            audioTrack?.release()
+        } catch (e: Exception) {
+            Log.e(TAG, "Error releasing AudioTrack", e)
+        } finally {
+            audioTrack = null
+        }
     }
 }

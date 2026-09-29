@@ -68,42 +68,42 @@ export default function App() {
     vehicleSpeedKmh: 0
   });
 
-  // Logging System with required tags: [CarPlay] [ScreenCapture] [ReplayKit] [VideoPipeline] [Connection] [Performance]
+  // Logging System with Kotlin Engine pipeline tags
   const [logs, setLogs] = useState<LogEntry[]>([
     {
       id: '1',
       timestamp: '13:30:02',
-      tag: 'CarPlay',
+      tag: 'Connection',
       level: 'info',
-      message: 'CPTemplateApplicationScene session active. Interface Controller initialized: APP Connected to Car.'
+      message: 'CarPlayApplication.kt: Engine initialized. Kotlin CoroutineScope active.'
     },
     {
       id: '2',
       timestamp: '13:30:03',
       tag: 'Connection',
       level: 'info',
-      message: 'MFi Lightning / USB-C wired CarPlay handshake complete. Window: (0, 0, 1920, 1080).'
+      message: 'UsbCarConnectionManager.kt: Apple MFi lightning/USB-C connection detected (VID 0x05AC).'
     },
     {
       id: '3',
       timestamp: '13:30:05',
-      tag: 'ScreenCapture',
+      tag: 'VideoPipeline',
       level: 'info',
-      message: 'ScreenMirroringManager state transitioned to: RUNNING.'
+      message: 'MediaCodecH264Decoder.kt: Hardware AVC decoder configured with KEY_LOW_LATENCY=1.'
     },
     {
       id: '4',
       timestamp: '13:30:06',
       tag: 'VideoPipeline',
       level: 'info',
-      message: 'Metal CVPixelBuffer pool active: 6 buffers allocated. Aspect mode: FIT.'
+      message: 'MainActivity.kt: Automotive SurfaceView attached. Direct rendering active at 1920x1080.'
     },
     {
       id: '5',
       timestamp: '13:30:08',
       tag: 'Performance',
       level: 'info',
-      message: 'VideoPipeline operating at 60 FPS. Average latency: 15.6ms.'
+      message: 'AudioTrackStreamPlayer.kt: Low-latency 48kHz Stereo PCM audio sink running smoothly at 60 FPS.'
     }
   ]);
 
@@ -304,12 +304,13 @@ export default function App() {
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-base font-bold text-white tracking-tight">CarPlay PhoneCast Studio</h1>
-                <span className="bg-sky-950 text-sky-400 border border-sky-800 text-[10px] font-semibold px-2 py-0.5 rounded-full">
-                  SwiftUI • CarPlay • ReplayKit • App Store Ready
+                <span className="bg-emerald-950 text-emerald-300 border border-emerald-800 text-[10px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                  Kotlin 1.9+ • Android Automotive • MediaCodec • APK Certified
                 </span>
               </div>
               <p className="text-xs text-neutral-400">
-                واجهة بث شاشة iPhone إلى شاشة السيارة عبر CarPlay
+                محرك استقبال وبث شاشات السيارات مبني بالكامل بلغة Kotlin ومطابق لمعايير حزم APK
               </p>
             </div>
           </div>
@@ -320,7 +321,7 @@ export default function App() {
               onClick={() => setActiveView('simulator')}
               className={`flex items-center gap-2 px-3 py-1.5 rounded-lg font-medium transition ${
                 activeView === 'simulator'
-                  ? 'bg-sky-500 text-white shadow-sm font-bold'
+                  ? 'bg-emerald-500 text-neutral-950 shadow-sm font-bold'
                   : 'text-neutral-400 hover:text-white'
               }`}
             >
@@ -332,7 +333,7 @@ export default function App() {
               onClick={() => setActiveView('distribution')}
               className={`flex items-center gap-2 px-3 py-1.5 rounded-lg font-medium transition ${
                 activeView === 'distribution'
-                  ? 'bg-sky-500 text-white shadow-sm font-bold'
+                  ? 'bg-emerald-500 text-neutral-950 shadow-sm font-bold'
                   : 'text-neutral-400 hover:text-white'
               }`}
             >
@@ -341,27 +342,27 @@ export default function App() {
             </button>
 
             <button
+              onClick={() => setActiveView('code')}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg font-medium transition ${
+                activeView === 'code'
+                  ? 'bg-emerald-500 text-neutral-950 shadow-sm font-bold'
+                  : 'text-neutral-400 hover:text-white'
+              }`}
+            >
+              <Code2 className="w-4 h-4" />
+              <span>💻 أكواد Kotlin و Android</span>
+            </button>
+
+            <button
               onClick={() => setActiveView('feasibility')}
               className={`flex items-center gap-2 px-3 py-1.5 rounded-lg font-medium transition ${
                 activeView === 'feasibility'
-                  ? 'bg-sky-500 text-white shadow-sm font-bold'
+                  ? 'bg-emerald-500 text-neutral-950 shadow-sm font-bold'
                   : 'text-neutral-400 hover:text-white'
               }`}
             >
               <BookOpen className="w-4 h-4" />
               <span>📋 الجدوى والاعتماد</span>
-            </button>
-
-            <button
-              onClick={() => setActiveView('code')}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg font-medium transition ${
-                activeView === 'code'
-                  ? 'bg-sky-500 text-white shadow-sm font-bold'
-                  : 'text-neutral-400 hover:text-white'
-              }`}
-            >
-              <Code2 className="w-4 h-4" />
-              <span>💻 أكواد Xcode (ZIP)</span>
             </button>
           </nav>
         </div>

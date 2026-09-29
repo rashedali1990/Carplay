@@ -179,47 +179,47 @@ export const DistributionPage: React.FC = () => {
       <div className="bg-neutral-950 border border-neutral-800 rounded-3xl p-6 sm:p-8 space-y-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-neutral-850">
           <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-950 border border-sky-800 text-sky-400 text-xs font-semibold mb-2">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-950 border border-emerald-800 text-emerald-300 text-xs font-semibold mb-2">
               <FolderArchive className="w-3.5 h-3.5" />
-              <span>تنزيل حزمة كود Xcode الكاملة</span>
+              <span>مشروع Kotlin و Android Studio المكتمل</span>
             </div>
-            <h3 className="text-2xl font-bold text-white">تنزيل مشروع التطبيق يدوياً (.ZIP)</h3>
+            <h3 className="text-2xl font-bold text-white">تنزيل مشروع Kotlin وحزم الـ APK (.ZIP / .APK)</h3>
             <p className="text-neutral-400 text-xs mt-1">
-              يحتوي الملف على جميع ملفات Swift الـ 16، وملفات Plist، وتصاريح CarPlay الرسمية، وبيان الخصوصية.
+              يحتوي المشروع على كامل كود Kotlin مع MediaCodec، AudioTrack، Coroutines، وإعدادات Gradle المجهزة للبناء الفوري.
             </p>
           </div>
 
-          {/* THREE DIRECT DOWNLOAD METHODS */}
+          {/* FOUR DIRECT DOWNLOAD METHODS */}
           <div className="flex flex-wrap items-center gap-3">
-            {/* APK Direct Download Button with in-browser generation & fallback */}
-            <button
-              onClick={handleDownloadApkClientSide}
-              disabled={isApkZipping}
-              className="flex items-center gap-2.5 px-6 py-3.5 rounded-2xl bg-emerald-500 hover:bg-emerald-400 active:scale-95 text-neutral-950 font-bold text-sm transition shadow-lg shadow-emerald-500/25 cursor-pointer disabled:opacity-50"
-            >
-              <Smartphone className="w-4 h-4 text-neutral-950" />
-              <span>{isApkZipping ? 'جاري تجهيز الـ APK...' : 'تنزيل فوري بصيغة APK (للشاشات)'}</span>
-            </button>
-
-            {/* Direct Native Server Download Link for Xcode ZIP */}
-            <button
-              onClick={handleClientSideDownload}
-              disabled={isZipping}
-              className="flex items-center gap-2.5 px-5 py-3.5 rounded-2xl bg-sky-500 hover:bg-sky-400 active:scale-95 text-white font-bold text-sm transition shadow-lg shadow-sky-500/25 cursor-pointer disabled:opacity-50"
-            >
-              <Download className="w-4 h-4" />
-              <span>{isZipping ? 'جاري تجهيز الـ ZIP...' : 'تنزيل كود Xcode للآيفون (ZIP)'}</span>
-            </button>
-
-            {/* Direct Server Link Fallback */}
+            {/* APK Direct Download Button */}
             <a
               href="/CarPlayPhoneCast.apk"
               download="CarPlayPhoneCast.apk"
-              className="flex items-center gap-2 px-4 py-3.5 rounded-2xl bg-neutral-800 hover:bg-neutral-750 text-neutral-200 font-semibold text-xs border border-neutral-700 transition"
+              className="flex items-center gap-2.5 px-6 py-3.5 rounded-2xl bg-emerald-500 hover:bg-emerald-400 active:scale-95 text-neutral-950 font-bold text-sm transition shadow-lg shadow-emerald-500/25 cursor-pointer"
+            >
+              <Smartphone className="w-4 h-4 text-neutral-950" />
+              <span>تنزيل فوري بصيغة APK (للشاشات)</span>
+            </a>
+
+            {/* Kotlin Android Project Download Link */}
+            <a
+              href="/api/download-kotlin-project"
+              download="CarPlayPhoneCast_Kotlin_Project.zip"
+              className="flex items-center gap-2.5 px-5 py-3.5 rounded-2xl bg-neutral-800 hover:bg-neutral-750 active:scale-95 text-emerald-300 border border-emerald-700/60 font-bold text-sm transition shadow-md cursor-pointer"
             >
               <Download className="w-4 h-4 text-emerald-400" />
-              <span>رابط سيرفر مباشر (APK)</span>
+              <span>تنزيل مشروع Kotlin كامل (ZIP)</span>
             </a>
+
+            {/* Xcode ZIP */}
+            <button
+              onClick={handleClientSideDownload}
+              disabled={isZipping}
+              className="flex items-center gap-2.5 px-4 py-3.5 rounded-2xl bg-neutral-850 hover:bg-neutral-800 active:scale-95 text-neutral-300 font-semibold text-xs border border-neutral-700 transition cursor-pointer disabled:opacity-50"
+            >
+              <Download className="w-4 h-4 text-sky-400" />
+              <span>{isZipping ? 'جاري التجهيز...' : 'مشروع Xcode للآيفون (ZIP)'}</span>
+            </button>
           </div>
         </div>
 

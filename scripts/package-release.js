@@ -104,7 +104,9 @@ include(":app")
   });
   fs.writeFileSync(path.join(outDir, 'CarPlayPhoneCast_Android_Project.zip'), androidZipBuffer);
   fs.writeFileSync(path.join(releasesDir, 'CarPlayPhoneCast_Android_Project.zip'), androidZipBuffer);
-  console.log('Android Studio Project ZIP created successfully.');
+  fs.writeFileSync(path.join(outDir, 'CarPlayPhoneCast_Kotlin_Project.zip'), androidZipBuffer);
+  fs.writeFileSync(path.join(releasesDir, 'CarPlayPhoneCast_Kotlin_Project.zip'), androidZipBuffer);
+  console.log('Kotlin & Android Studio Project ZIP created successfully.');
 
   console.log('Generating Conforming Android APK (CarPlayPhoneCast.apk)...');
   const apkZip = new JSZip();

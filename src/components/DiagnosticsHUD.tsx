@@ -32,26 +32,26 @@ export const DiagnosticsHUD: React.FC<DiagnosticsHUDProps> = ({
   return (
     <div className="bg-neutral-900/90 border border-neutral-800 rounded-2xl p-4 shadow-xl text-neutral-300">
       <div className="flex flex-wrap items-center justify-between gap-4 pb-3 border-b border-neutral-800 text-xs">
-        {/* Pipeline Flow Visualization */}
+        {/* Pipeline Flow Visualization - Kotlin Engine */}
         <div className="flex items-center gap-1.5 overflow-x-auto text-[11px] font-mono py-1">
           <span className="px-2 py-1 rounded bg-neutral-800 text-neutral-300 border border-neutral-700">
-            Screen Capture
-          </span>
-          <ArrowRight className="w-3.5 h-3.5 text-neutral-500 shrink-0" />
-          <span className="px-2 py-1 rounded bg-neutral-800 text-neutral-300 border border-neutral-700">
-            Frame Processing
-          </span>
-          <ArrowRight className="w-3.5 h-3.5 text-neutral-500 shrink-0" />
-          <span className="px-2 py-1 rounded bg-sky-950 text-sky-300 border border-sky-800">
-            CVPixelBuffer Pool
-          </span>
-          <ArrowRight className="w-3.5 h-3.5 text-neutral-500 shrink-0" />
-          <span className="px-2 py-1 rounded bg-indigo-950 text-indigo-300 border border-indigo-800">
-            Metal / VT Encode
+            iPhone Host (H.264)
           </span>
           <ArrowRight className="w-3.5 h-3.5 text-neutral-500 shrink-0" />
           <span className="px-2 py-1 rounded bg-emerald-950 text-emerald-300 border border-emerald-800">
-            CarPlay Display
+            UsbCarConnection (Kotlin)
+          </span>
+          <ArrowRight className="w-3.5 h-3.5 text-neutral-500 shrink-0" />
+          <span className="px-2 py-1 rounded bg-sky-950 text-sky-300 border border-sky-800">
+            MediaCodec Low-Latency (Kotlin)
+          </span>
+          <ArrowRight className="w-3.5 h-3.5 text-neutral-500 shrink-0" />
+          <span className="px-2 py-1 rounded bg-purple-950 text-purple-300 border border-purple-800">
+            AudioTrack 48kHz (Kotlin)
+          </span>
+          <ArrowRight className="w-3.5 h-3.5 text-neutral-500 shrink-0" />
+          <span className="px-2 py-1 rounded bg-emerald-950 text-emerald-300 border border-emerald-800">
+            Automotive SurfaceView (60 FPS)
           </span>
         </div>
 
