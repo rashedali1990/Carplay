@@ -1,0 +1,17 @@
+# GitHub Linguist Language Configuration
+# Mark TypeScript/JavaScript tooling and frontend web assets as vendored/ignored in language stats
+*.ts linguist-vendored
+*.tsx linguist-vendored
+*.js linguist-vendored
+*.json linguist-vendored
+*.css linguist-vendored
+*.html linguist-vendored
+src/** linguist-vendored
+scripts/** linguist-vendored
+releases/** linguist-vendored
+dist/** linguist-vendored
+dist-release/** linguist-vendored
+
+# Explicitly detect Kotlin code as primary repository language
+*.kt linguist-detectable=true linguist-language=Kotlin
+*.kts linguist-detectable=true linguist-language=Kotlin
