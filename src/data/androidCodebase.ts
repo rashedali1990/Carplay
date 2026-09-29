@@ -970,13 +970,395 @@ include(":app")`
 
   // 17. Automotive App Desc XML
   {
-    path: 'android/app/src/main/res/xml/automotive_app_desc.xml',
+    path: 'app/src/main/res/xml/automotive_app_desc.xml',
     name: 'automotive_app_desc.xml',
     category: 'Res',
-    description: 'Android Automotive app descriptor for car head units',
+    description: 'Android Automotive & Android Auto descriptor with template & media features',
     content: `<?xml version="1.0" encoding="utf-8"?>
 <automotiveApp>
+    <uses name="template" />
     <uses name="media" />
 </automotiveApp>`
+  },
+
+  // 18. Android Auto Entrypoint Service (Kotlin)
+  {
+    path: 'app/src/main/java/com/carplay/phonecast/auto/AutoMirrorCarAppService.kt',
+    name: 'AutoMirrorCarAppService.kt',
+    category: 'Service',
+    description: 'Android Auto CarAppService with HostValidator.ALLOW_ALL_HOSTS_VALIDATOR for sideloaded APKs',
+    content: `package com.carplay.phonecast.auto
+
+import androidx.car.app.CarAppService
+import androidx.car.app.Session
+import androidx.car.app.validation.HostValidator
+
+/**
+ * Android Auto Entrypoint Service (Kotlin)
+ * Sideloaded APK Configuration - Allows all hosts without Google Play restrictions.
+ */
+class AutoMirrorCarAppService : CarAppService() {
+
+    override fun createHostValidator(): HostValidator {
+        // Essential for sideloaded APKs: permits running on any Android Auto head unit
+        // without requiring Google Play Store digital signatures.
+        return HostValidator.ALLOW_ALL_HOSTS_VALIDATOR
+    }
+
+    override fun onCreateSession(): Session {
+        return AutoMirrorSession()
+    }
+}`
+  },
+
+  // 19. Android Auto Session (Kotlin)
+  {
+    path: 'app/src/main/java/com/carplay/phonecast/auto/AutoMirrorSession.kt',
+    name: 'AutoMirrorSession.kt',
+    category: 'Service',
+    description: 'Android Auto Session lifecycle manager creating AutoMirrorScreen',
+    content: `package com.carplay.phonecast.auto
+
+import android.content.Intent
+import androidx.car.app.Screen
+import androidx.car.app.Session
+
+/**
+ * Android Auto Session lifecycle manager.
+ */
+class AutoMirrorSession : Session() {
+
+    override fun onCreateScreen(intent: Intent): Screen {
+        return AutoMirrorScreen(carContext)
+    }
+}`
+  },
+
+  // 20. Android Auto Surface Screen (Kotlin)
+  {
+    path: 'app/src/main/java/com/carplay/phonecast/auto/AutoMirrorScreen.kt',
+    name: 'AutoMirrorScreen.kt',
+    category: 'UI',
+    description: 'NavigationTemplate with SurfaceCallback for freeform rendering on Android Auto head unit',
+    content: `package com.carplay.phonecast.auto
+
+import android.graphics.Rect
+import android.util.Log
+import android.view.Surface
+import androidx.car.app.AppManager
+import androidx.car.app.CarContext
+import androidx.car.app.Screen
+import androidx.car.app.SurfaceCallback
+import androidx.car.app.SurfaceContainer
+import androidx.car.app.model.Action
+import androidx.car.app.model.ActionStrip
+import androidx.car.app.model.Template
+import androidx.car.app.navigation.model.NavigationTemplate
+
+/**
+ * Android Auto Screen providing Surface rendering canvas via NavigationTemplate.
+ */
+class AutoMirrorScreen(carContext: CarContext) : Screen(carContext) {
+
+    companion object {
+        private const val TAG = "AutoMirrorScreen"
+    }
+
+    private var activeSurface: Surface? = null
+
+    private val surfaceCallback = object : SurfaceCallback {
+        override fun onSurfaceAvailable(surfaceContainer: SurfaceContainer) {
+            val surface = surfaceContainer.surface
+            val width = surfaceContainer.width
+            val height = surfaceContainer.height
+            val dpi = surfaceContainer.dpi
+            Log.i(TAG, "Android Auto Surface available: \${width}x\${height} @ \${dpi}dpi")
+
+            activeSurface = surface
+            // Pass the vehicle Surface to the ScreenCaptureManager
+            ScreenCaptureManager.attachCarSurface(surface, width, height, dpi)
+        }
+
+        override fun onVisibleAreaChanged(visibleArea: Rect) {
+            Log.d(TAG, "Visible display area: \$visibleArea")
+        }
+
+        override fun onStableAreaChanged(stableArea: Rect) {
+            Log.d(TAG, "Stable display area: \$stableArea")
+        }
+
+        override fun onSurfaceDestroyed(surfaceContainer: SurfaceContainer) {
+            Log.i(TAG, "Android Auto Surface destroyed.")
+            ScreenCaptureManager.detachCarSurface()
+            activeSurface = null
+        }
+    }
+
+    init {
+        // Register surface callback with Android Auto AppManager
+        carContext.getCarService(AppManager::class.java).setSurfaceCallback(surfaceCallback)
+    }
+
+    override fun onGetTemplate(): Template {
+        val actionStrip = ActionStrip.Builder()
+            .addAction(
+                Action.Builder()
+                    .setTitle("Toggle Mirror")
+                    .setOnClickListener {
+                        ScreenCaptureManager.toggleMirroring()
+                    }
+                    .build()
+            )
+            .build()
+
+        return NavigationTemplate.Builder()
+            .setActionStrip(actionStrip)
+            .build()
+    }
+}`
+  },
+
+  // 21. MediaProjection Screen Capture Manager (Kotlin)
+  {
+    path: 'app/src/main/java/com/carplay/phonecast/auto/ScreenCaptureManager.kt',
+    name: 'ScreenCaptureManager.kt',
+    category: 'Video',
+    description: 'Kotlin VirtualDisplay pipeline streaming phone screen directly into car surface',
+    content: `package com.carplay.phonecast.auto
+
+import android.hardware.display.DisplayManager
+import android.hardware.display.VirtualDisplay
+import android.media.projection.MediaProjection
+import android.util.Log
+import android.view.Surface
+
+/**
+ * Screen Capture Manager (Kotlin)
+ * Pipes phone display into Android Auto Vehicle Surface via MediaProjection VirtualDisplay.
+ */
+object ScreenCaptureManager {
+
+    private const val TAG = "ScreenCaptureManager"
+    private const val VIRTUAL_DISPLAY_NAME = "AndroidAutoMirrorDisplay"
+
+    private var carSurface: Surface? = null
+    private var surfaceWidth: Int = 1920
+    private var surfaceHeight: Int = 1080
+    private var surfaceDpi: Int = 160
+
+    private var mediaProjection: MediaProjection? = null
+    private var virtualDisplay: VirtualDisplay? = null
+    var isMirroring: Boolean = false
+        private set
+
+    fun setMediaProjection(projection: MediaProjection) {
+        mediaProjection = projection
+        startStreamingIfReady()
+    }
+
+    fun attachCarSurface(surface: Surface, width: Int, height: Int, dpi: Int) {
+        carSurface = surface
+        surfaceWidth = if (width > 0) width else 1920
+        surfaceHeight = if (height > 0) height else 1080
+        surfaceDpi = if (dpi > 0) dpi else 160
+        startStreamingIfReady()
+    }
+
+    fun detachCarSurface() {
+        stopStreaming()
+        carSurface = null
+    }
+
+    fun toggleMirroring() {
+        if (isMirroring) {
+            stopStreaming()
+        } else {
+            startStreamingIfReady()
+        }
+    }
+
+    private fun startStreamingIfReady() {
+        val projection = mediaProjection
+        val surface = carSurface
+
+        if (projection == null || surface == null) {
+            Log.d(TAG, "Cannot start streaming: projection=\$projection, surface=\$surface")
+            return
+        }
+
+        try {
+            virtualDisplay?.release()
+            virtualDisplay = projection.createVirtualDisplay(
+                VIRTUAL_DISPLAY_NAME,
+                surfaceWidth,
+                surfaceHeight,
+                surfaceDpi,
+                DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR or DisplayManager.VIRTUAL_DISPLAY_FLAG_PRESENTATION,
+                surface,
+                null,
+                null
+            )
+            isMirroring = true
+            Log.i(TAG, "Screen Mirroring started to Android Auto Surface: \${surfaceWidth}x\${height} @ \${dpi}dpi")
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to create VirtualDisplay for car surface", e)
+            isMirroring = false
+        }
+    }
+
+    fun stopStreaming() {
+        try {
+            virtualDisplay?.release()
+            virtualDisplay = null
+            isMirroring = false
+            Log.i(TAG, "Screen Mirroring to Android Auto stopped.")
+        } catch (e: Exception) {
+            Log.e(TAG, "Error stopping streaming", e)
+        }
+    }
+}`
+  },
+
+  // 22. ScreenCapture Foreground Service (Kotlin)
+  {
+    path: 'app/src/main/java/com/carplay/phonecast/auto/ScreenCaptureService.kt',
+    name: 'ScreenCaptureService.kt',
+    category: 'Service',
+    description: 'Mandatory Foreground Service with FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION',
+    content: `package com.carplay.phonecast.auto
+
+import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.Service
+import android.content.Intent
+import android.content.pm.ServiceInfo
+import android.os.Build
+import android.os.IBinder
+import androidx.core.app.NotificationCompat
+
+/**
+ * Foreground Service for MediaProjection (Screen Capture).
+ * Mandatory on Android 10+ and Android 14+ with FOREGROUND_SERVICE_MEDIA_PROJECTION.
+ */
+class ScreenCaptureService : Service() {
+
+    companion object {
+        const val CHANNEL_ID = "screen_mirror_channel"
+        const val NOTIFICATION_ID = 5001
+        const val ACTION_START = "ACTION_START"
+        const val ACTION_STOP = "ACTION_STOP"
+    }
+
+    override fun onCreate() {
+        super.onCreate()
+        createNotificationChannel()
+    }
+
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        when (intent?.action) {
+            ACTION_STOP -> {
+                ScreenCaptureManager.stopStreaming()
+                stopForeground(STOP_FOREGROUND_REMOVE)
+                stopSelf()
+                return START_NOT_STICKY
+            }
+            else -> {
+                val notification = buildNotification()
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    startForeground(
+                        NOTIFICATION_ID,
+                        notification,
+                        ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION
+                    )
+                } else {
+                    startForeground(NOTIFICATION_ID, notification)
+                }
+            }
+        }
+        return START_STICKY
+    }
+
+    private fun createNotificationChannel() {
+        val channel = NotificationChannel(
+            CHANNEL_ID,
+            "Android Auto Screen Mirroring",
+            NotificationManager.IMPORTANCE_LOW
+        ).apply {
+            description = "Maintains active screen mirroring to car screen"
+        }
+        val manager = getSystemService(NotificationManager::class.java)
+        manager.createNotificationChannel(channel)
+    }
+
+    private fun buildNotification(): Notification {
+        return NotificationCompat.Builder(this, CHANNEL_ID)
+            .setContentTitle("Screen Mirroring to Android Auto")
+            .setContentText("Phone screen is actively streaming to vehicle display")
+            .setSmallIcon(android.R.drawable.ic_menu_camera)
+            .setOngoing(true)
+            .build()
+    }
+
+    override fun onBind(intent: Intent?): IBinder? = null
+
+    override fun onDestroy() {
+        super.onDestroy()
+        ScreenCaptureManager.stopStreaming()
+    }
+}`
+  },
+
+  // 23. GitHub Actions CI/CD Workflow
+  {
+    path: '.github/workflows/build-android.yml',
+    name: 'build-android.yml',
+    category: 'Config',
+    description: 'GitHub Actions workflow to compile Kotlin code and release app-debug.apk',
+    content: `name: Build Android Native APK
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Assemble Native Android APK (Kotlin)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Grant Execute Permission to Gradle Wrapper
+        run: |
+          if [ -f "gradlew" ]; then
+            chmod +x gradlew
+          else
+            gradle wrapper --gradle-version 8.4
+            chmod +x gradlew
+          fi
+
+      - name: Build Debug APK with Gradle
+        run: ./gradlew assembleDebug --no-daemon --stacktrace
+
+      - name: Upload Debug APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-debug.apk
+          path: app/build/outputs/apk/debug/*.apk
+          retention-days: 14`
   }
 ];

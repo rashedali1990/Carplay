@@ -6,13 +6,18 @@
     <uses-feature android:name="android.hardware.usb.host" android:required="true" />
     <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
 
+    <!-- Core Permissions -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+
+    <!-- Foreground Service Permissions for MediaProjection & Car Screen -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
 
     <application
         android:name=".CarPlayApplication"
@@ -24,10 +29,16 @@
         android:hardwareAccelerated="true"
         android:theme="@style/Theme.CarPlayPhoneCast.Fullscreen">
 
+        <!-- Android Auto Application Metadata -->
         <meta-data
             android:name="com.google.android.gms.car.application"
             android:resource="@xml/automotive_app_desc" />
 
+        <meta-data
+            android:name="androidx.car.app.minCarApiLevel"
+            android:value="1" />
+
+        <!-- Main Phone UI Activity -->
         <activity
             android:name=".ui.MainActivity"
             android:exported="true"
@@ -48,6 +59,25 @@
                 android:resource="@xml/usb_device_filter" />
         </activity>
 
+        <!-- Android Auto Screen Mirroring Service -->
+        <service
+            android:name=".auto.AutoMirrorCarAppService"
+            android:exported="true"
+            android:label="PhoneCast Mirror">
+            <intent-filter>
+                <action android:name="androidx.car.app.CarAppService" />
+                <category android:name="androidx.car.app.category.NAVIGATION" />
+            </intent-filter>
+        </service>
+
+        <!-- MediaProjection Screen Capture Service -->
+        <service
+            android:name=".auto.ScreenCaptureService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="mediaProjection" />
+
+        <!-- CarPlay Receiver Service -->
         <service
             android:name=".service.CarPlayReceiverService"
             android:enabled="true"
