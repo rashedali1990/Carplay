@@ -15,7 +15,7 @@ jobs:
       # 3. بناء التطبيق بدون توقيع (تأكد من تغيير "اسم_الـ_Scheme_هنا")
       - name: Build unsigned .app
         run: |
-          xcodebuild -scheme "اسم_الـ_Scheme_هنا" \
+          xcodebuild -scheme "CarPlayPhoneCast" \
                      -sdk iphoneos \
                      -configuration Release \
                      CODE_SIGN_IDENTITY="" \
