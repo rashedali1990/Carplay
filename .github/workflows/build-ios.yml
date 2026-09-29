@@ -5,13 +5,14 @@ jobs:
   build:
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v3
+      # 1. تحديث أداة جلب الكود إلى الإصدار v4
+      - uses: actions/checkout@v4
 
-      - name: Set up Xcode
-        uses: maxim-lobachev/setup-xcode@v1
-        with:
-          xcode-version: 'latest'
+      # 2. طباعة إصدار Xcode الحالي للتأكد منه (خطوة اختيارية)
+      - name: Show current Xcode version
+        run: xcodebuild -version
 
+      # 3. بناء التطبيق بدون توقيع (تأكد من تغيير "اسم_الـ_Scheme_هنا")
       - name: Build unsigned .app
         run: |
           xcodebuild -scheme "اسم_الـ_Scheme_هنا" \
@@ -22,14 +23,16 @@ jobs:
                      CODE_SIGNING_ALLOWED=NO \
                      clean build
 
+      # 4. تحويل الملف إلى صيغة IPA
       - name: Package to IPA
         run: |
           mkdir Payload
           cp -r build/Release-iphoneos/*.app Payload/
           zip -r my_app.ipa Payload
 
+      # 5. تحديث أداة حفظ الملف النهائي إلى الإصدار v4
       - name: Upload IPA
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: iOS-App
           path: my_app.ipa
