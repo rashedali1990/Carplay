@@ -95,6 +95,17 @@ async function startServer() {
     res.status(404).json({ error: 'Android project ZIP not found' });
   });
 
+  // Git Bundle Download
+  app.get('/CarPlayPhoneCast.bundle', (req, res) => {
+    const bundlePath = path.resolve(projectRoot, 'releases/CarPlayPhoneCast.bundle');
+    if (fs.existsSync(bundlePath)) {
+      res.setHeader('Content-Type', 'application/octet-stream');
+      res.setHeader('Content-Disposition', 'attachment; filename="CarPlayPhoneCast.bundle"');
+      return fs.createReadStream(bundlePath).pipe(res);
+    }
+    res.status(404).json({ error: 'Bundle not found' });
+  });
+
   // APK Inspector API endpoint
   app.get('/api/inspect-apk', (req, res) => {
     const apkPath = path.resolve(projectRoot, 'releases/CarPlayPhoneCast.apk');
