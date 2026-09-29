@@ -34,8 +34,8 @@ import {
 } from './types/carplay';
 
 export default function App() {
-  // Navigation Tabs: Simulator | Distribution | Feasibility | Code (Defaulting to distribution for instant APK download)
-  const [activeView, setActiveView] = useState<'simulator' | 'distribution' | 'feasibility' | 'code'>('distribution');
+  // Navigation Tabs: Simulator (Default) | Distribution | Feasibility | Code
+  const [activeView, setActiveView] = useState<'simulator' | 'distribution' | 'feasibility' | 'code'>('simulator');
 
   // CarPlay Connection State
   const [connectionState, setConnectionState] = useState<CarPlayConnectionState>('Connected');
@@ -269,17 +269,27 @@ export default function App() {
       <div className="bg-emerald-950/90 border-b border-emerald-800/80 px-4 py-2.5 text-xs flex flex-wrap items-center justify-between gap-3 text-emerald-200">
         <div className="flex items-center gap-2">
           <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
-          <span className="font-bold text-white">رابط مباشر لصيغة APK:</span>
-          <span className="hidden sm:inline">ملف CarPlayPhoneCast.apk متاح للتنزيل الفوري على شاشات السيارات وأجهزة أندرويد.</span>
+          <span className="font-bold text-white">🟢 التطبيق جاهز ويعمل الآن:</span>
+          <span className="hidden sm:inline">يمكنك تجربة بث CarPlay مباشرة بالأسفل أو تنزيل ملف CarPlayPhoneCast.apk لشاشتك.</span>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setActiveView('simulator')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition ${
+              activeView === 'simulator' 
+                ? 'bg-neutral-800 text-white border border-neutral-700' 
+                : 'text-neutral-300 hover:text-white'
+            }`}
+          >
+            📱 عرض واجهة التطبيق
+          </button>
           <a
-            href="/api/download-apk"
+            href="/CarPlayPhoneCast.apk"
             download="CarPlayPhoneCast.apk"
             className="px-4 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-neutral-950 font-bold transition flex items-center gap-1.5 shadow-md shadow-emerald-500/20 active:scale-95"
           >
             <Download className="w-3.5 h-3.5" />
-            <span>تنزيل CarPlayPhoneCast.apk (مباشر)</span>
+            <span>تنزيل CarPlayPhoneCast.apk</span>
           </a>
         </div>
       </div>
@@ -293,13 +303,13 @@ export default function App() {
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-base font-bold text-white tracking-tight">CarPlay PhoneCast Suite</h1>
+                <h1 className="text-base font-bold text-white tracking-tight">CarPlay PhoneCast Studio</h1>
                 <span className="bg-sky-950 text-sky-400 border border-sky-800 text-[10px] font-semibold px-2 py-0.5 rounded-full">
                   SwiftUI • CarPlay • ReplayKit • App Store Ready
                 </span>
               </div>
               <p className="text-xs text-neutral-400">
-                Phone → CarPlay → Car Display (Apple HIG & MFi Compliant)
+                واجهة بث شاشة iPhone إلى شاشة السيارة عبر CarPlay
               </p>
             </div>
           </div>
@@ -310,48 +320,48 @@ export default function App() {
               onClick={() => setActiveView('simulator')}
               className={`flex items-center gap-2 px-3 py-1.5 rounded-lg font-medium transition ${
                 activeView === 'simulator'
-                  ? 'bg-sky-500 text-white shadow-sm'
+                  ? 'bg-sky-500 text-white shadow-sm font-bold'
                   : 'text-neutral-400 hover:text-white'
               }`}
             >
               <Smartphone className="w-4 h-4" />
-              <span>Dual Simulator</span>
+              <span>📱 واجهة التطبيق المباشرة</span>
             </button>
 
             <button
               onClick={() => setActiveView('distribution')}
               className={`flex items-center gap-2 px-3 py-1.5 rounded-lg font-medium transition ${
                 activeView === 'distribution'
-                  ? 'bg-sky-500 text-white shadow-sm'
+                  ? 'bg-sky-500 text-white shadow-sm font-bold'
                   : 'text-neutral-400 hover:text-white'
               }`}
             >
               <Globe className="w-4 h-4" />
-              <span>Download Portal (Web)</span>
+              <span>📥 مركز التنزيل و APK</span>
             </button>
 
             <button
               onClick={() => setActiveView('feasibility')}
               className={`flex items-center gap-2 px-3 py-1.5 rounded-lg font-medium transition ${
                 activeView === 'feasibility'
-                  ? 'bg-sky-500 text-white shadow-sm'
+                  ? 'bg-sky-500 text-white shadow-sm font-bold'
                   : 'text-neutral-400 hover:text-white'
               }`}
             >
               <BookOpen className="w-4 h-4" />
-              <span>Feasibility & App Store</span>
+              <span>📋 الجدوى والاعتماد</span>
             </button>
 
             <button
               onClick={() => setActiveView('code')}
               className={`flex items-center gap-2 px-3 py-1.5 rounded-lg font-medium transition ${
                 activeView === 'code'
-                  ? 'bg-sky-500 text-white shadow-sm'
+                  ? 'bg-sky-500 text-white shadow-sm font-bold'
                   : 'text-neutral-400 hover:text-white'
               }`}
             >
               <Code2 className="w-4 h-4" />
-              <span>Xcode Codebase (.zip)</span>
+              <span>💻 أكواد Xcode (ZIP)</span>
             </button>
           </nav>
         </div>

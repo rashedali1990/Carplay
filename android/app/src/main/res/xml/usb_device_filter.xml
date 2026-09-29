@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Apple Inc. Vendor ID (0x05AC) for iPhone, iPad, and MFi CarPlay dongles -->
+    <usb-device vendor-id="1452" />
+    <usb-accessory model="CarPlayPhoneCast" manufacturer="PhoneCast" version="1.0" />
+</resources>
