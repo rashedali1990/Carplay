@@ -1,38 +1,42 @@
 name: Build iOS IPA
-on: [push, workflow_dispatch]
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: macos-latest
     steps:
-      # 1. تحديث أداة جلب الكود إلى الإصدار v4
       - uses: actions/checkout@v4
 
-      # 2. طباعة إصدار Xcode الحالي للتأكد منه (خطوة اختيارية)
-      - name: Show current Xcode version
-        run: xcodebuild -version
+      - name: Install XcodeGen
+        run: brew install xcodegen
 
-      # 3. بناء التطبيق بدون توقيع (تأكد من تغيير "اسم_الـ_Scheme_هنا")
-      - name: Build unsigned .app
+      - name: Generate Xcode project
+        working-directory: ios
+        run: xcodegen generate
+
+      - name: Build unsigned app
+        working-directory: ios
         run: |
-          xcodebuild -scheme "CarPlayPhoneCast" \
-                     -sdk iphoneos \
-                     -configuration Release \
-                     CODE_SIGN_IDENTITY="" \
-                     CODE_SIGNING_REQUIRED=NO \
-                     CODE_SIGNING_ALLOWED=NO \
-                     clean build
+          xcodebuild -project CarPlayPhoneCast.xcodeproj \
+            -scheme CarPlayPhoneCast \
+            -sdk iphoneos \
+            -configuration Release \
+            -derivedDataPath build \
+            CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO \
+            build
 
-      # 4. تحويل الملف إلى صيغة IPA
-      - name: Package to IPA
+      - name: Package IPA
+        working-directory: ios
         run: |
           mkdir Payload
-          cp -r build/Release-iphoneos/*.app Payload/
-          zip -r my_app.ipa Payload
+          cp -r build/Build/Products/Release-iphoneos/*.app Payload/
+          zip -r CarPlayPhoneCast-unsigned.ipa Payload
 
-      # 5. تحديث أداة حفظ الملف النهائي إلى الإصدار v4
-      - name: Upload IPA
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
-          name: iOS-App
-          path: my_app.ipa
+          name: CarPlayPhoneCast-iOS-unsigned-ipa
+          path: ios/CarPlayPhoneCast-unsigned.ipa
+          retention-days: 14
